@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Subreddit Competitor Monitor</title>
+    <title>Subreddit Competitor Monitor - Enhanced</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -17,6 +17,34 @@
             border-radius: 10px;
             margin-bottom: 30px;
             text-align: center;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-group label {
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+        }
+        .control-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
         }
         .subreddit-section { 
             background: white;
@@ -125,20 +153,52 @@
 </head>
 <body>
     <div class="header">
-        <h1>📡 Subreddit Competitor Monitor latest</h1>
-        <p>Monitor specific communities for competitor discussions</p>
+        <h1>📡 Enhanced Subreddit Monitor</h1>
+        <p>Deep monitoring of creator communities with advanced filtering</p>
     </div>
 
-    <div class="status" id="status">Ready to monitor subreddits for competitor mentions</div>
+    <div class="status" id="status">Ready to monitor subreddits - choose your settings below</div>
     
-    <button onclick="monitorSubreddits()" id="monitorBtn">🔍 Scan All Subreddits</button>
-    <button onclick="quickScan()" id="quickBtn">⚡ Quick Scan (Top 3)</button>
+    <div class="controls">
+        <div class="control-group">
+            <label for="timeFilter">Time Range:</label>
+            <select id="timeFilter">
+                <option value="week">Past Week</option>
+                <option value="month">Past Month</option>
+                <option value="year">Past Year</option>
+                <option value="all">All Time</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="postLimit">Posts per Subreddit:</label>
+            <select id="postLimit">
+                <option value="25">25 posts (Quick)</option>
+                <option value="50">50 posts (Standard)</option>
+                <option value="100">100 posts (Deep Scan)</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="sortType">Sort by:</label>
+            <select id="sortType">
+                <option value="hot">Hot (Trending)</option>
+                <option value="new">New (Recent)</option>
+                <option value="top">Top (Popular)</option>
+            </select>
+        </div>
+    </div>
+    
+    <button onclick="monitorSubreddits()" id="monitorBtn">🔍 Full Scan (All 11 Subreddits)</button>
+    <button onclick="quickScan()" id="quickBtn">⚡ Quick Scan (Top 5)</button>
     
     <div id="results"></div>
 
     <script>
         // Subreddits to monitor
         const targetSubreddits = [
+            'Medium',
+            'Substack', 
             'writing',
             'freelancewriters', 
             'blogging',
@@ -162,9 +222,22 @@
             'WordPress': ['wordpress.com', 'wordpress blog']
         };
 
-        async function fetchSubredditPosts(subreddit, limit = 25) {
+        async function fetchSubredditPosts(subreddit, limit = 25, sort = 'hot', timeFilter = 'week') {
             try {
-                const response = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`);
+                let url = `https://www.reddit.com/r/${subreddit}/${sort}.json?limit=${limit}`;
+                
+                // Add time filter for 'top' sort
+                if (sort === 'top') {
+                    url += `&t=${timeFilter}`;
+                }
+                
+                console.log(`Fetching: ${url}`);
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
                 const data = await response.json();
                 
                 return data.data.children.map(child => ({
@@ -238,7 +311,12 @@
             monitorBtn.disabled = true;
             monitorBtn.textContent = 'Scanning...';
             
-            updateStatus('🔄 Scanning subreddits for competitor mentions...');
+            // Get user selections
+            const postLimit = parseInt(document.getElementById('postLimit').value);
+            const sortType = document.getElementById('sortType').value;
+            const timeFilter = document.getElementById('timeFilter').value;
+            
+            updateStatus(`🔄 Deep scanning ${targetSubreddits.length} subreddits (${postLimit} posts each, ${sortType} posts from ${timeFilter})...`);
             document.getElementById('results').innerHTML = '<div class="loading">Analyzing posts across multiple subreddits...</div>';
             
             const allMentions = {};
@@ -247,9 +325,9 @@
             
             for (let i = 0; i < targetSubreddits.length; i++) {
                 const subreddit = targetSubreddits[i];
-                updateStatus(`📊 Scanning r/${subreddit}... (${i + 1}/${targetSubreddits.length})`);
+                updateStatus(`📊 Scanning r/${subreddit}... (${i + 1}/${targetSubreddits.length}) - ${postLimit} ${sortType} posts`);
                 
-                const posts = await fetchSubredditPosts(subreddit);
+                const posts = await fetchSubredditPosts(subreddit, postLimit, sortType, timeFilter);
                 const mentions = findCompetitorMentions(posts);
                 
                 allMentions[subreddit] = {
@@ -261,15 +339,16 @@
                 totalPosts += posts.length;
                 totalMentions += mentions.length;
                 
-                // Rate limiting
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Rate limiting - longer delay for bigger scans
+                const delay = postLimit > 50 ? 1500 : 1000;
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
             
-            updateStatus(`✅ Scan complete! Found ${totalMentions} competitor mentions in ${totalPosts} posts`);
-            displayResults(allMentions, totalMentions);
+            updateStatus(`✅ Deep scan complete! Analyzed ${totalPosts} posts and found ${totalMentions} competitor mentions`);
+            displayResults(allMentions, totalMentions, { postLimit, sortType, timeFilter });
             
             monitorBtn.disabled = false;
-            monitorBtn.textContent = '🔍 Scan All Subreddits';
+            monitorBtn.textContent = '🔍 Full Scan (All 11 Subreddits)';
         }
 
         async function quickScan() {
@@ -277,12 +356,14 @@
             quickBtn.disabled = true;
             quickBtn.textContent = 'Quick Scanning...';
             
-            const topSubreddits = targetSubreddits.slice(0, 3);
-            updateStatus('⚡ Quick scan of top 3 subreddits...');
+            const topSubreddits = targetSubreddits.slice(0, 5);
+            const postLimit = 20;
+            
+            updateStatus('⚡ Quick scan of top 5 subreddits (hot posts from past week)...');
             
             const allMentions = {};
             for (const subreddit of topSubreddits) {
-                const posts = await fetchSubredditPosts(subreddit, 15);
+                const posts = await fetchSubredditPosts(subreddit, postLimit, 'hot', 'week');
                 const mentions = findCompetitorMentions(posts);
                 allMentions[subreddit] = { posts, mentions, totalPosts: posts.length };
                 await new Promise(resolve => setTimeout(resolve, 800));
@@ -290,7 +371,7 @@
             
             const totalMentions = Object.values(allMentions).reduce((sum, data) => sum + data.mentions.length, 0);
             updateStatus(`✅ Quick scan complete! Found ${totalMentions} mentions`);
-            displayResults(allMentions, totalMentions);
+            displayResults(allMentions, totalMentions, { postLimit: 20, sortType: 'hot', timeFilter: 'week' });
             
             quickBtn.disabled = false;
             quickBtn.textContent = '⚡ Quick Scan (Top 5)';
@@ -311,13 +392,14 @@
             
             const topPlatform = Object.entries(platformCounts).sort(([,a], [,b]) => b - a)[0];
             const topSubreddit = Object.entries(subredditCounts).sort(([,a], [,b]) => b - a)[0];
+            const totalPostsAnalyzed = Object.values(allMentions).reduce((sum, data) => sum + data.totalPosts, 0);
             
             let html = `
                 <div class="insights">
                     <div class="insight-title">🧠 Scan Results</div>
                     <div style="margin: 8px 0;">• <strong>Total mentions found:</strong> ${totalMentions}</div>
-                    <div style="margin: 8px 0;">• <strong>Posts analyzed:</strong> ${Object.values(allMentions).reduce((sum, data) => sum + data.totalPosts, 0)}</div>
-                    ${scanSettings.postLimit ? `<div style="margin: 8px 0;">• <strong>Scan depth:</strong> ${scanSettings.postLimit} posts per subreddit, sorted by ${scanSettings.sortType}</div>` : ''}
+                    <div style="margin: 8px 0;">• <strong>Posts analyzed:</strong> ${totalPostsAnalyzed}</div>
+                    ${scanSettings.postLimit ? `<div style="margin: 8px 0;">• <strong>Scan settings:</strong> ${scanSettings.postLimit} ${scanSettings.sortType} posts per subreddit from ${scanSettings.timeFilter}</div>` : ''}
                     ${topPlatform ? `<div style="margin: 8px 0;">• <strong>Most discussed platform:</strong> ${topPlatform[0]} (${topPlatform[1]} mentions)</div>` : ''}
                     ${topSubreddit ? `<div style="margin: 8px 0;">• <strong>Most active community:</strong> r/${topSubreddit[0]} (${topSubreddit[1]} mentions)</div>` : ''}
                 </div>
