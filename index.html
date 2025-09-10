@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Reddit Competitor Analysis - Enhanced</title>
+    <title>Subreddit Competitor Monitor</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1000px; 
+            max-width: 1200px; 
             margin: 0 auto; 
             padding: 20px; 
             background: #f5f5f5;
@@ -18,13 +18,30 @@
             margin-bottom: 30px;
             text-align: center;
         }
-        .competitor { 
+        .subreddit-section { 
             background: white;
             border: 1px solid #e0e0e0; 
-            margin: 15px 0; 
+            margin: 20px 0; 
             padding: 20px; 
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .subreddit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .subreddit-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #007cba;
+        }
+        .subreddit-stats {
+            font-size: 14px;
+            color: #666;
         }
         button { 
             background: #007cba; 
@@ -39,132 +56,164 @@
         button:hover { background: #005a87; }
         button:disabled { background: #ccc; cursor: not-allowed; }
         .loading { color: #666; font-style: italic; padding: 20px; text-align: center; }
-        .metrics { display: flex; gap: 20px; margin: 15px 0; }
-        .metric { background: #f8f9fa; padding: 10px; border-radius: 5px; text-align: center; min-width: 100px; }
-        .metric-value { font-size: 24px; font-weight: bold; color: #007cba; }
-        .metric-label { font-size: 12px; color: #666; }
-        .discussions { margin-top: 15px; }
-        .discussion { 
+        .mention { 
             background: #f8f9fa; 
-            padding: 10px; 
-            margin: 5px 0; 
+            padding: 15px; 
+            margin: 10px 0; 
             border-radius: 5px;
-            border-left: 3px solid #007cba;
+            border-left: 4px solid #28a745;
         }
-        .discussion-title { font-weight: bold; margin-bottom: 5px; }
-        .discussion-title a { 
+        .mention-title { 
+            font-weight: bold; 
+            margin-bottom: 8px; 
+        }
+        .mention-title a { 
             color: #007cba; 
             text-decoration: none; 
         }
-        .discussion-title a:hover { 
+        .mention-title a:hover { 
             text-decoration: underline; 
-            color: #005a87; 
         }
-        .discussion-meta { font-size: 12px; color: #666; }
-        .insights { 
-            background: #e8f5e8; 
-            border: 1px solid #c8e6c9; 
-            padding: 20px; 
-            border-radius: 8px; 
+        .mention-meta { 
+            font-size: 12px; 
+            color: #666; 
+            margin-bottom: 8px;
+        }
+        .mention-snippet { 
+            font-size: 14px; 
+            color: #333;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+        .platform-tag {
+            display: inline-block;
+            background: #007cba;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+        .status { 
+            padding: 10px; 
+            background: #fff3cd; 
+            border: 1px solid #ffeaa7; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+        }
+        .insights {
+            background: #e8f5e8;
+            border: 1px solid #c8e6c9;
+            padding: 20px;
+            border-radius: 8px;
             margin: 20px 0;
         }
-        .insight-title { color: #2e7d32; font-weight: bold; margin-bottom: 10px; }
-        .winner { background: #e8f5e8; border-color: #4caf50; }
-        .status { padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; margin: 10px 0; }
+        .insight-title { 
+            color: #2e7d32; 
+            font-weight: bold; 
+            margin-bottom: 10px; 
+        }
+        .no-mentions {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🔍 Reddit Competitive Intelligence V4</h1>
-        <p>Real-time analysis of creator platform discussions</p>
+        <h1>📡 Subreddit Competitor Monitor</h1>
+        <p>Monitor specific communities for competitor discussions</p>
     </div>
 
-    <div class="status" id="status">Ready to analyze Reddit discussions</div>
+    <div class="status" id="status">Ready to monitor subreddits for competitor mentions</div>
     
-    <button onclick="analyzeCompetitors()" id="analyzeBtn">🚀 Analyze Competitor Discussions</button>
-    <button onclick="analyzeSpecific('writing')" id="writingBtn">✍️ Writing Community Focus</button>
-    <button onclick="analyzeSpecific('creators')" id="creatorBtn">👥 Creator Economy Focus</button>
+    <button onclick="monitorSubreddits()" id="monitorBtn">🔍 Scan All Subreddits</button>
+    <button onclick="quickScan()" id="quickBtn">⚡ Quick Scan (Top 3)</button>
     
     <div id="results"></div>
 
     <script>
-        // More precise search queries to avoid noise
-        const competitorQueries = {
-            'Medium': [
-                'medium.com writing',
-                'medium platform writers',
-                'medium partner program',
-                'publishing on medium'
-            ],
-            'Substack': [
-                'substack newsletter',
-                'substack writers',
-                'substack vs medium',
-                'substack monetization'
-            ],
-            'Ghost': [
-                'ghost.org platform',
-                'ghost publishing',
-                'ghost newsletter',
-                'ghost vs wordpress'
-            ],
-            'LinkedIn Articles': [
-                'linkedin articles',
-                'linkedin publishing',
-                'linkedin newsletter',
-                'writing on linkedin'
-            ],
-            'dev.to': [
-                'dev.to writing',
-                'dev.to platform',
-                'technical writing dev.to',
-                'dev.to vs medium'
-            ],
-            'Hashnode': [
-                'hashnode blog',
-                'hashnode writing',
-                'hashnode vs medium',
-                'technical blogging hashnode'
-            ]
+        // Subreddits to monitor
+        const targetSubreddits = [
+            'writing',
+            'freelancewriters', 
+            'blogging',
+            'entrepreneur',
+            'webdev',
+            'startups',
+            'SideProject',
+            'newsletters',
+            'content_marketing'
+        ];
+
+        // Platforms to look for
+        const competitorKeywords = {
+            'Medium': ['medium.com', 'medium platform', 'medium article', 'writing on medium', 'medium partner'],
+            'Substack': ['substack', 'substack newsletter', 'substack writer', 'substack paid'],
+            'Ghost': ['ghost.org', 'ghost platform', 'ghost blog', 'ghost cms'],
+            'LinkedIn': ['linkedin article', 'linkedin post', 'linkedin newsletter', 'linkedin publishing'],
+            'dev.to': ['dev.to', 'devto', 'dev community'],
+            'Hashnode': ['hashnode', 'hashnode blog'],
+            'Notion': ['notion pages', 'notion blog'],
+            'WordPress': ['wordpress.com', 'wordpress blog']
         };
 
-        // Focused queries for specific analysis
-        const focusedQueries = {
-            'writing': {
-                'Medium': ['medium writing platform', 'medium for writers'],
-                'Substack': ['substack writing', 'substack for writers'],
-                'Ghost': ['ghost writing platform'],
-                'LinkedIn': ['linkedin writing', 'linkedin articles']
-            },
-            'creators': {
-                'Medium': ['medium creator economy', 'medium monetization'],
-                'Substack': ['substack creator economy', 'substack paid newsletters'],
-                'Ghost': ['ghost creator monetization'],
-                'LinkedIn': ['linkedin creator program']
-            }
-        };
-
-        async function fetchRedditData(query, limit = 15) {
+        async function fetchSubredditPosts(subreddit, limit = 25) {
             try {
-                const response = await fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=${limit}&sort=relevance&t=month`);
+                const response = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`);
                 const data = await response.json();
                 
-                return data.data.children
-                    .map(child => ({
-                        title: child.data.title,
-                        selftext: child.data.selftext,
-                        ups: child.data.ups,
-                        subreddit: child.data.subreddit,
-                        comments: child.data.num_comments,
-                        created_utc: child.data.created_utc,
-                        url: child.data.url,
-                        permalink: child.data.permalink
-                    }))
-                    .filter(post => post.title.length > 10); // Filter out very short titles
+                return data.data.children.map(child => ({
+                    title: child.data.title,
+                    selftext: child.data.selftext || '',
+                    ups: child.data.ups,
+                    subreddit: child.data.subreddit,
+                    comments: child.data.num_comments,
+                    permalink: child.data.permalink,
+                    created_utc: child.data.created_utc,
+                    author: child.data.author,
+                    url: child.data.url
+                }));
             } catch (error) {
-                console.error('Error fetching Reddit data:', error);
+                console.error(`Error fetching r/${subreddit}:`, error);
                 return [];
             }
+        }
+
+        function findCompetitorMentions(posts) {
+            const mentions = [];
+            
+            posts.forEach(post => {
+                const fullText = `${post.title} ${post.selftext}`.toLowerCase();
+                
+                Object.entries(competitorKeywords).forEach(([platform, keywords]) => {
+                    keywords.forEach(keyword => {
+                        if (fullText.includes(keyword.toLowerCase())) {
+                            mentions.push({
+                                ...post,
+                                platform: platform,
+                                keyword: keyword,
+                                snippet: extractSnippet(fullText, keyword)
+                            });
+                        }
+                    });
+                });
+            });
+            
+            return mentions;
+        }
+
+        function extractSnippet(text, keyword) {
+            const index = text.toLowerCase().indexOf(keyword.toLowerCase());
+            if (index === -1) return '';
+            
+            const start = Math.max(0, index - 50);
+            const end = Math.min(text.length, index + keyword.length + 50);
+            return '...' + text.slice(start, end) + '...';
         }
 
         function updateStatus(message) {
@@ -172,190 +221,145 @@
         }
 
         function calculateSentiment(text) {
-            const positiveWords = ['great', 'amazing', 'love', 'best', 'awesome', 'excellent', 'recommend', 'perfect', 'fantastic'];
-            const negativeWords = ['terrible', 'hate', 'worst', 'bad', 'awful', 'sucks', 'problems', 'issues', 'frustrating', 'disappointed'];
+            const positiveWords = ['great', 'amazing', 'love', 'best', 'awesome', 'excellent', 'recommend', 'perfect'];
+            const negativeWords = ['terrible', 'hate', 'worst', 'bad', 'awful', 'sucks', 'problems', 'issues'];
             
             const lowerText = text.toLowerCase();
             const positiveScore = positiveWords.filter(word => lowerText.includes(word)).length;
             const negativeScore = negativeWords.filter(word => lowerText.includes(word)).length;
             
-            if (positiveScore > negativeScore) return 'positive';
-            if (negativeScore > positiveScore) return 'negative';
-            return 'neutral';
+            if (positiveScore > negativeScore) return '😊 Positive';
+            if (negativeScore > positiveScore) return '😞 Negative';
+            return '😐 Neutral';
         }
 
-        function generateInsights(results) {
-            const insights = [];
+        async function monitorSubreddits() {
+            const monitorBtn = document.getElementById('monitorBtn');
+            monitorBtn.disabled = true;
+            monitorBtn.textContent = 'Scanning...';
             
-            // Find platform with most mentions
-            const mentions = Object.entries(results).map(([platform, data]) => ({
-                platform,
-                count: data.posts.length
-            })).sort((a, b) => b.count - a.count);
+            updateStatus('🔄 Scanning subreddits for competitor mentions...');
+            document.getElementById('results').innerHTML = '<div class="loading">Analyzing posts across multiple subreddits...</div>';
             
-            if (mentions.length > 0) {
-                insights.push(`🏆 <strong>${mentions[0].platform}</strong> is generating the most Reddit discussion with ${mentions[0].count} relevant posts`);
-            }
+            const allMentions = {};
+            let totalPosts = 0;
+            let totalMentions = 0;
             
-            // Find highest engagement
-            const engagement = Object.entries(results).map(([platform, data]) => ({
-                platform,
-                avgUpvotes: data.posts.length > 0 ? Math.round(data.totalUpvotes / data.posts.length) : 0
-            })).sort((a, b) => b.avgUpvotes - a.avgUpvotes);
-            
-            if (engagement.length > 0 && engagement[0].avgUpvotes > 0) {
-                insights.push(`🔥 <strong>${engagement[0].platform}</strong> posts are getting the highest engagement (avg ${engagement[0].avgUpvotes} upvotes per post)`);
-            }
-            
-            // Look for trending topics
-            const allTitles = Object.values(results).flatMap(data => data.posts.map(p => p.title)).join(' ').toLowerCase();
-            const trendingWords = ['ai', 'monetization', 'newsletter', 'creators', 'algorithm', 'discovery'];
-            const trends = trendingWords.filter(word => allTitles.includes(word));
-            
-            if (trends.length > 0) {
-                insights.push(`📈 Trending discussion topics: <strong>${trends.join(', ')}</strong>`);
-            }
-            
-            return insights;
-        }
-
-        async function analyzeCompetitors() {
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            analyzeBtn.disabled = true;
-            analyzeBtn.textContent = 'Analyzing...';
-            
-            updateStatus('🔄 Fetching competitor data from Reddit...');
-            document.getElementById('results').innerHTML = '<div class="loading">Analyzing Reddit discussions across multiple platforms...</div>';
-            
-            const results = {};
-            let completed = 0;
-            const total = Object.keys(competitorQueries).length;
-            
-            for (const [platform, queries] of Object.entries(competitorQueries)) {
-                updateStatus(`📊 Analyzing ${platform} discussions... (${completed + 1}/${total})`);
+            for (let i = 0; i < targetSubreddits.length; i++) {
+                const subreddit = targetSubreddits[i];
+                updateStatus(`📊 Scanning r/${subreddit}... (${i + 1}/${targetSubreddits.length})`);
                 
-                let allPosts = [];
-                for (const query of queries.slice(0, 2)) { // Use first 2 queries to avoid rate limits
-                    const posts = await fetchRedditData(query, 10);
-                    allPosts.push(...posts);
-                    await new Promise(resolve => setTimeout(resolve, 800)); // Rate limiting
-                }
+                const posts = await fetchSubredditPosts(subreddit);
+                const mentions = findCompetitorMentions(posts);
                 
-                // Remove duplicates and get metrics
-                const uniquePosts = allPosts.filter((post, index, self) => 
-                    index === self.findIndex(p => p.title === post.title)
-                );
-                
-                const totalUpvotes = uniquePosts.reduce((sum, post) => sum + post.ups, 0);
-                const totalComments = uniquePosts.reduce((sum, post) => sum + post.comments, 0);
-                
-                results[platform] = {
-                    posts: uniquePosts,
-                    totalUpvotes,
-                    totalComments,
-                    avgUpvotes: uniquePosts.length > 0 ? Math.round(totalUpvotes / uniquePosts.length) : 0
+                allMentions[subreddit] = {
+                    posts: posts,
+                    mentions: mentions,
+                    totalPosts: posts.length
                 };
                 
-                completed++;
+                totalPosts += posts.length;
+                totalMentions += mentions.length;
+                
+                // Rate limiting
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
-            updateStatus('✅ Analysis complete! Here are the insights:');
-            displayResults(results);
+            updateStatus(`✅ Scan complete! Found ${totalMentions} competitor mentions in ${totalPosts} posts`);
+            displayResults(allMentions, totalMentions);
             
-            analyzeBtn.disabled = false;
-            analyzeBtn.textContent = '🚀 Analyze Competitor Discussions';
+            monitorBtn.disabled = false;
+            monitorBtn.textContent = '🔍 Scan All Subreddits';
         }
 
-        async function analyzeSpecific(focus) {
-            const queries = focusedQueries[focus];
-            if (!queries) return;
+        async function quickScan() {
+            const quickBtn = document.getElementById('quickBtn');
+            quickBtn.disabled = true;
+            quickBtn.textContent = 'Quick Scanning...';
             
-            updateStatus(`🎯 Analyzing ${focus} discussions...`);
-            document.getElementById('results').innerHTML = `<div class="loading">Analyzing ${focus}-focused discussions...</div>`;
+            const topSubreddits = targetSubreddits.slice(0, 3);
+            updateStatus('⚡ Quick scan of top 3 subreddits...');
             
-            const results = {};
-            for (const [platform, platformQueries] of Object.entries(queries)) {
-                const allPosts = [];
-                for (const query of platformQueries) {
-                    const posts = await fetchRedditData(query, 8);
-                    allPosts.push(...posts);
-                    await new Promise(resolve => setTimeout(resolve, 600));
-                }
-                
-                const uniquePosts = allPosts.filter((post, index, self) => 
-                    index === self.findIndex(p => p.title === post.title)
-                );
-                
-                results[platform] = {
-                    posts: uniquePosts,
-                    totalUpvotes: uniquePosts.reduce((sum, post) => sum + post.ups, 0),
-                    totalComments: uniquePosts.reduce((sum, post) => sum + post.comments, 0)
-                };
+            const allMentions = {};
+            for (const subreddit of topSubreddits) {
+                const posts = await fetchSubredditPosts(subreddit, 15);
+                const mentions = findCompetitorMentions(posts);
+                allMentions[subreddit] = { posts, mentions, totalPosts: posts.length };
+                await new Promise(resolve => setTimeout(resolve, 800));
             }
             
-            updateStatus(`✅ ${focus.charAt(0).toUpperCase() + focus.slice(1)} analysis complete!`);
-            displayResults(results, focus);
+            const totalMentions = Object.values(allMentions).reduce((sum, data) => sum + data.mentions.length, 0);
+            updateStatus(`✅ Quick scan complete! Found ${totalMentions} mentions`);
+            displayResults(allMentions, totalMentions);
+            
+            quickBtn.disabled = false;
+            quickBtn.textContent = '⚡ Quick Scan (Top 3)';
         }
 
-        function displayResults(results, focusType = 'general') {
-            const insights = generateInsights(results);
+        function displayResults(allMentions, totalMentions) {
+            // Generate insights
+            const platformCounts = {};
+            const subredditCounts = {};
+            
+            Object.entries(allMentions).forEach(([subreddit, data]) => {
+                subredditCounts[subreddit] = data.mentions.length;
+                
+                data.mentions.forEach(mention => {
+                    platformCounts[mention.platform] = (platformCounts[mention.platform] || 0) + 1;
+                });
+            });
+            
+            const topPlatform = Object.entries(platformCounts).sort(([,a], [,b]) => b - a)[0];
+            const topSubreddit = Object.entries(subredditCounts).sort(([,a], [,b]) => b - a)[0];
             
             let html = `
                 <div class="insights">
-                    <div class="insight-title">🧠 AI Insights from Reddit Analysis</div>
-                    ${insights.map(insight => `<div style="margin: 8px 0;">• ${insight}</div>`).join('')}
+                    <div class="insight-title">🧠 Key Insights</div>
+                    <div style="margin: 8px 0;">• <strong>Total mentions found:</strong> ${totalMentions}</div>
+                    ${topPlatform ? `<div style="margin: 8px 0;">• <strong>Most discussed platform:</strong> ${topPlatform[0]} (${topPlatform[1]} mentions)</div>` : ''}
+                    ${topSubreddit ? `<div style="margin: 8px 0;">• <strong>Most active community:</strong> r/${topSubreddit[0]} (${topSubreddit[1]} mentions)</div>` : ''}
                 </div>
             `;
             
-            // Sort platforms by mentions for better display
-            const sortedPlatforms = Object.entries(results)
-                .sort(([,a], [,b]) => b.posts.length - a.posts.length);
-            
-            for (const [platform, data] of sortedPlatforms) {
-                const isWinner = data.posts.length === Math.max(...Object.values(results).map(r => r.posts.length));
-                
+            // Display results by subreddit
+            Object.entries(allMentions).forEach(([subreddit, data]) => {
                 html += `
-                    <div class="competitor ${isWinner ? 'winner' : ''}">
-                        <h3>${platform} ${isWinner ? '👑' : ''}</h3>
-                        <div class="metrics">
-                            <div class="metric">
-                                <div class="metric-value">${data.posts.length}</div>
-                                <div class="metric-label">Discussions</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value">${data.totalUpvotes}</div>
-                                <div class="metric-label">Total Upvotes</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value">${data.totalComments}</div>
-                                <div class="metric-label">Comments</div>
-                            </div>
-                            <div class="metric">
-                                <div class="metric-value">${data.posts.length > 0 ? Math.round(data.totalUpvotes / data.posts.length) : 0}</div>
-                                <div class="metric-label">Avg Upvotes</div>
+                    <div class="subreddit-section">
+                        <div class="subreddit-header">
+                            <div class="subreddit-title">r/${subreddit}</div>
+                            <div class="subreddit-stats">
+                                ${data.mentions.length} mentions found in ${data.totalPosts} posts
                             </div>
                         </div>
-                        
-                        <div class="discussions">
-                            <strong>Recent Discussions:</strong>
-                            ${data.posts.slice(0, 3).map(post => `
-                                <div class="discussion">
-                                    <div class="discussion-title">
-                                        <a href="https://reddit.com${post.permalink}" target="_blank">
-                                            ${post.title} 🔗
-                                        </a>
-                                    </div>
-                                    <div class="discussion-meta">
-                                        r/${post.subreddit} • ${post.ups} upvotes • ${post.comments} comments
-                                        ${calculateSentiment(post.title) === 'positive' ? '😊' : calculateSentiment(post.title) === 'negative' ? '😞' : '😐'}
-                                    </div>
-                                </div>
-                            `).join('')}
-                            ${data.posts.length === 0 ? '<div style="color: #999; font-style: italic;">No recent discussions found</div>' : ''}
-                        </div>
-                    </div>
                 `;
-            }
+                
+                if (data.mentions.length === 0) {
+                    html += '<div class="no-mentions">No competitor mentions found in recent posts</div>';
+                } else {
+                    data.mentions.slice(0, 5).forEach(mention => {
+                        html += `
+                            <div class="mention">
+                                <div class="mention-title">
+                                    <a href="https://reddit.com${mention.permalink}" target="_blank">
+                                        ${mention.title} 🔗
+                                    </a>
+                                </div>
+                                <div class="mention-meta">
+                                    <span class="platform-tag">${mention.platform}</span>
+                                    ${mention.ups} upvotes • ${mention.comments} comments • u/${mention.author} • ${calculateSentiment(mention.title + ' ' + mention.selftext)}
+                                </div>
+                                ${mention.snippet ? `<div class="mention-snippet">"${mention.snippet}"</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    if (data.mentions.length > 5) {
+                        html += `<div style="text-align: center; color: #666; margin-top: 10px;">+ ${data.mentions.length - 5} more mentions in this subreddit</div>`;
+                    }
+                }
+                
+                html += '</div>';
+            });
             
             document.getElementById('results').innerHTML = html;
         }
