@@ -1,64 +1,347 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Reddit Competitor Analysis</title>
+    <title>Reddit Competitor Analysis - Enhanced</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .competitor { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
-        button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .competitor { 
+            background: white;
+            border: 1px solid #e0e0e0; 
+            margin: 15px 0; 
+            padding: 20px; 
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button { 
+            background: #007cba; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
         button:hover { background: #005a87; }
-        .loading { color: #666; font-style: italic; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .loading { color: #666; font-style: italic; padding: 20px; text-align: center; }
+        .metrics { display: flex; gap: 20px; margin: 15px 0; }
+        .metric { background: #f8f9fa; padding: 10px; border-radius: 5px; text-align: center; min-width: 100px; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #007cba; }
+        .metric-label { font-size: 12px; color: #666; }
+        .discussions { margin-top: 15px; }
+        .discussion { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            margin: 5px 0; 
+            border-radius: 5px;
+            border-left: 3px solid #007cba;
+        }
+        .discussion-title { font-weight: bold; margin-bottom: 5px; }
+        .discussion-meta { font-size: 12px; color: #666; }
+        .insights { 
+            background: #e8f5e8; 
+            border: 1px solid #c8e6c9; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 20px 0;
+        }
+        .insight-title { color: #2e7d32; font-weight: bold; margin-bottom: 10px; }
+        .winner { background: #e8f5e8; border-color: #4caf50; }
+        .status { padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; margin: 10px 0; }
     </style>
 </head>
 <body>
-    <h1>Reddit Competitor Analysis</h1>
-    <button onclick="analyzeCompetitors()">Analyze Reddit Discussions</button>
+    <div class="header">
+        <h1>🔍 Reddit Competitive Intelligence</h1>
+        <p>Real-time analysis of creator platform discussions</p>
+    </div>
+
+    <div class="status" id="status">Ready to analyze Reddit discussions</div>
+    
+    <button onclick="analyzeCompetitors()" id="analyzeBtn">🚀 Analyze Competitor Discussions</button>
+    <button onclick="analyzeSpecific('writing')" id="writingBtn">✍️ Writing Community Focus</button>
+    <button onclick="analyzeSpecific('creators')" id="creatorBtn">👥 Creator Economy Focus</button>
+    
     <div id="results"></div>
 
     <script>
-        async function fetchRedditData(query) {
+        // More precise search queries to avoid noise
+        const competitorQueries = {
+            'Medium': [
+                'medium.com writing',
+                'medium platform writers',
+                'medium partner program',
+                'publishing on medium'
+            ],
+            'Substack': [
+                'substack newsletter',
+                'substack writers',
+                'substack vs medium',
+                'substack monetization'
+            ],
+            'Ghost': [
+                'ghost.org platform',
+                'ghost publishing',
+                'ghost newsletter',
+                'ghost vs wordpress'
+            ],
+            'LinkedIn Articles': [
+                'linkedin articles',
+                'linkedin publishing',
+                'linkedin newsletter',
+                'writing on linkedin'
+            ],
+            'dev.to': [
+                'dev.to writing',
+                'dev.to platform',
+                'technical writing dev.to',
+                'dev.to vs medium'
+            ],
+            'Hashnode': [
+                'hashnode blog',
+                'hashnode writing',
+                'hashnode vs medium',
+                'technical blogging hashnode'
+            ]
+        };
+
+        // Focused queries for specific analysis
+        const focusedQueries = {
+            'writing': {
+                'Medium': ['medium writing platform', 'medium for writers'],
+                'Substack': ['substack writing', 'substack for writers'],
+                'Ghost': ['ghost writing platform'],
+                'LinkedIn': ['linkedin writing', 'linkedin articles']
+            },
+            'creators': {
+                'Medium': ['medium creator economy', 'medium monetization'],
+                'Substack': ['substack creator economy', 'substack paid newsletters'],
+                'Ghost': ['ghost creator monetization'],
+                'LinkedIn': ['linkedin creator program']
+            }
+        };
+
+        async function fetchRedditData(query, limit = 15) {
             try {
-                const response = await fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=20&sort=new`);
+                const response = await fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&limit=${limit}&sort=relevance&t=month`);
                 const data = await response.json();
-                return data.data.children.map(child => ({
-                    title: child.data.title,
-                    ups: child.data.ups,
-                    subreddit: child.data.subreddit,
-                    comments: child.data.num_comments
-                }));
+                
+                return data.data.children
+                    .map(child => ({
+                        title: child.data.title,
+                        selftext: child.data.selftext,
+                        ups: child.data.ups,
+                        subreddit: child.data.subreddit,
+                        comments: child.data.num_comments,
+                        created_utc: child.data.created_utc,
+                        url: child.data.url
+                    }))
+                    .filter(post => post.title.length > 10); // Filter out very short titles
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error fetching Reddit data:', error);
                 return [];
             }
         }
 
-        async function analyzeCompetitors() {
-            document.getElementById('results').innerHTML = '<div class="loading">Analyzing Reddit discussions...</div>';
-            
-            const competitors = {
-                'Medium': 'medium.com',
-                'Substack': 'substack',
-                'Ghost': 'ghost.org',
-                'dev.to': 'dev.to'
-            };
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = message;
+        }
 
-            let html = '<h2>Results:</h2>';
+        function calculateSentiment(text) {
+            const positiveWords = ['great', 'amazing', 'love', 'best', 'awesome', 'excellent', 'recommend', 'perfect', 'fantastic'];
+            const negativeWords = ['terrible', 'hate', 'worst', 'bad', 'awful', 'sucks', 'problems', 'issues', 'frustrating', 'disappointed'];
             
-            for (const [platform, query] of Object.entries(competitors)) {
-                const posts = await fetchRedditData(query);
-                const totalUpvotes = posts.reduce((sum, post) => sum + post.ups, 0);
+            const lowerText = text.toLowerCase();
+            const positiveScore = positiveWords.filter(word => lowerText.includes(word)).length;
+            const negativeScore = negativeWords.filter(word => lowerText.includes(word)).length;
+            
+            if (positiveScore > negativeScore) return 'positive';
+            if (negativeScore > positiveScore) return 'negative';
+            return 'neutral';
+        }
+
+        function generateInsights(results) {
+            const insights = [];
+            
+            // Find platform with most mentions
+            const mentions = Object.entries(results).map(([platform, data]) => ({
+                platform,
+                count: data.posts.length
+            })).sort((a, b) => b.count - a.count);
+            
+            if (mentions.length > 0) {
+                insights.push(`🏆 <strong>${mentions[0].platform}</strong> is generating the most Reddit discussion with ${mentions[0].count} relevant posts`);
+            }
+            
+            // Find highest engagement
+            const engagement = Object.entries(results).map(([platform, data]) => ({
+                platform,
+                avgUpvotes: data.posts.length > 0 ? Math.round(data.totalUpvotes / data.posts.length) : 0
+            })).sort((a, b) => b.avgUpvotes - a.avgUpvotes);
+            
+            if (engagement.length > 0 && engagement[0].avgUpvotes > 0) {
+                insights.push(`🔥 <strong>${engagement[0].platform}</strong> posts are getting the highest engagement (avg ${engagement[0].avgUpvotes} upvotes per post)`);
+            }
+            
+            // Look for trending topics
+            const allTitles = Object.values(results).flatMap(data => data.posts.map(p => p.title)).join(' ').toLowerCase();
+            const trendingWords = ['ai', 'monetization', 'newsletter', 'creators', 'algorithm', 'discovery'];
+            const trends = trendingWords.filter(word => allTitles.includes(word));
+            
+            if (trends.length > 0) {
+                insights.push(`📈 Trending discussion topics: <strong>${trends.join(', ')}</strong>`);
+            }
+            
+            return insights;
+        }
+
+        async function analyzeCompetitors() {
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing...';
+            
+            updateStatus('🔄 Fetching competitor data from Reddit...');
+            document.getElementById('results').innerHTML = '<div class="loading">Analyzing Reddit discussions across multiple platforms...</div>';
+            
+            const results = {};
+            let completed = 0;
+            const total = Object.keys(competitorQueries).length;
+            
+            for (const [platform, queries] of Object.entries(competitorQueries)) {
+                updateStatus(`📊 Analyzing ${platform} discussions... (${completed + 1}/${total})`);
+                
+                let allPosts = [];
+                for (const query of queries.slice(0, 2)) { // Use first 2 queries to avoid rate limits
+                    const posts = await fetchRedditData(query, 10);
+                    allPosts.push(...posts);
+                    await new Promise(resolve => setTimeout(resolve, 800)); // Rate limiting
+                }
+                
+                // Remove duplicates and get metrics
+                const uniquePosts = allPosts.filter((post, index, self) => 
+                    index === self.findIndex(p => p.title === post.title)
+                );
+                
+                const totalUpvotes = uniquePosts.reduce((sum, post) => sum + post.ups, 0);
+                const totalComments = uniquePosts.reduce((sum, post) => sum + post.comments, 0);
+                
+                results[platform] = {
+                    posts: uniquePosts,
+                    totalUpvotes,
+                    totalComments,
+                    avgUpvotes: uniquePosts.length > 0 ? Math.round(totalUpvotes / uniquePosts.length) : 0
+                };
+                
+                completed++;
+            }
+            
+            updateStatus('✅ Analysis complete! Here are the insights:');
+            displayResults(results);
+            
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = '🚀 Analyze Competitor Discussions';
+        }
+
+        async function analyzeSpecific(focus) {
+            const queries = focusedQueries[focus];
+            if (!queries) return;
+            
+            updateStatus(`🎯 Analyzing ${focus} discussions...`);
+            document.getElementById('results').innerHTML = `<div class="loading">Analyzing ${focus}-focused discussions...</div>`;
+            
+            const results = {};
+            for (const [platform, platformQueries] of Object.entries(queries)) {
+                const allPosts = [];
+                for (const query of platformQueries) {
+                    const posts = await fetchRedditData(query, 8);
+                    allPosts.push(...posts);
+                    await new Promise(resolve => setTimeout(resolve, 600));
+                }
+                
+                const uniquePosts = allPosts.filter((post, index, self) => 
+                    index === self.findIndex(p => p.title === post.title)
+                );
+                
+                results[platform] = {
+                    posts: uniquePosts,
+                    totalUpvotes: uniquePosts.reduce((sum, post) => sum + post.ups, 0),
+                    totalComments: uniquePosts.reduce((sum, post) => sum + post.comments, 0)
+                };
+            }
+            
+            updateStatus(`✅ ${focus.charAt(0).toUpperCase() + focus.slice(1)} analysis complete!`);
+            displayResults(results, focus);
+        }
+
+        function displayResults(results, focusType = 'general') {
+            const insights = generateInsights(results);
+            
+            let html = `
+                <div class="insights">
+                    <div class="insight-title">🧠 AI Insights from Reddit Analysis</div>
+                    ${insights.map(insight => `<div style="margin: 8px 0;">• ${insight}</div>`).join('')}
+                </div>
+            `;
+            
+            // Sort platforms by mentions for better display
+            const sortedPlatforms = Object.entries(results)
+                .sort(([,a], [,b]) => b.posts.length - a.posts.length);
+            
+            for (const [platform, data] of sortedPlatforms) {
+                const isWinner = data.posts.length === Math.max(...Object.values(results).map(r => r.posts.length));
                 
                 html += `
-                    <div class="competitor">
-                        <h3>${platform}</h3>
-                        <p><strong>Reddit Mentions:</strong> ${posts.length}</p>
-                        <p><strong>Total Upvotes:</strong> ${totalUpvotes}</p>
-                        <p><strong>Top Discussion:</strong> ${posts[0]?.title || 'No recent posts'}</p>
+                    <div class="competitor ${isWinner ? 'winner' : ''}">
+                        <h3>${platform} ${isWinner ? '👑' : ''}</h3>
+                        <div class="metrics">
+                            <div class="metric">
+                                <div class="metric-value">${data.posts.length}</div>
+                                <div class="metric-label">Discussions</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${data.totalUpvotes}</div>
+                                <div class="metric-label">Total Upvotes</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${data.totalComments}</div>
+                                <div class="metric-label">Comments</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${data.posts.length > 0 ? Math.round(data.totalUpvotes / data.posts.length) : 0}</div>
+                                <div class="metric-label">Avg Upvotes</div>
+                            </div>
+                        </div>
+                        
+                        <div class="discussions">
+                            <strong>Recent Discussions:</strong>
+                            ${data.posts.slice(0, 3).map(post => `
+                                <div class="discussion">
+                                    <div class="discussion-title">${post.title}</div>
+                                    <div class="discussion-meta">
+                                        r/${post.subreddit} • ${post.ups} upvotes • ${post.comments} comments
+                                        ${calculateSentiment(post.title) === 'positive' ? '😊' : calculateSentiment(post.title) === 'negative' ? '😞' : '😐'}
+                                    </div>
+                                </div>
+                            `).join('')}
+                            ${data.posts.length === 0 ? '<div style="color: #999; font-style: italic;">No recent discussions found</div>' : ''}
+                        </div>
                     </div>
                 `;
-                
-                // Wait a bit between requests
-                await new Promise(resolve => setTimeout(resolve, 1000));
             }
             
             document.getElementById('results').innerHTML = html;
