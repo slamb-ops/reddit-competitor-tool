@@ -296,7 +296,7 @@
             quickBtn.textContent = '⚡ Quick Scan (Top 5)';
         }
 
-        function displayResults(allMentions, totalMentions) {
+        function displayResults(allMentions, totalMentions, scanSettings = {}) {
             // Generate insights
             const platformCounts = {};
             const subredditCounts = {};
@@ -314,8 +314,10 @@
             
             let html = `
                 <div class="insights">
-                    <div class="insight-title">🧠 Key Insights</div>
+                    <div class="insight-title">🧠 Scan Results</div>
                     <div style="margin: 8px 0;">• <strong>Total mentions found:</strong> ${totalMentions}</div>
+                    <div style="margin: 8px 0;">• <strong>Posts analyzed:</strong> ${Object.values(allMentions).reduce((sum, data) => sum + data.totalPosts, 0)}</div>
+                    ${scanSettings.postLimit ? `<div style="margin: 8px 0;">• <strong>Scan depth:</strong> ${scanSettings.postLimit} posts per subreddit, sorted by ${scanSettings.sortType}</div>` : ''}
                     ${topPlatform ? `<div style="margin: 8px 0;">• <strong>Most discussed platform:</strong> ${topPlatform[0]} (${topPlatform[1]} mentions)</div>` : ''}
                     ${topSubreddit ? `<div style="margin: 8px 0;">• <strong>Most active community:</strong> r/${topSubreddit[0]} (${topSubreddit[1]} mentions)</div>` : ''}
                 </div>
